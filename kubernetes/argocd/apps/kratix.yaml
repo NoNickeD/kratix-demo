@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kratix
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://syntasso.github.io/helm-charts
+    chart: kratix
+    targetRevision: v0.0.1
+    helm:
+      values: |
+        tolerations:
+          - key: node-type
+            operator: Equal
+            value: system
+            effect: NoSchedule
+        nodeSelector:
+          node-type: system
+        # State store configuration - using Git for GitOps
+        stateStores: []
+        additionalResources: []
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kratix-platform-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

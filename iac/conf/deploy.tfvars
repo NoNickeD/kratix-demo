@@ -1,0 +1,10 @@
+cidr_block            = "10.0.0.0/16"
+cluster_version       = "1.33"
+cluster_name          = "kratix-demo"
+instance_types        = ["c7a.2xlarge"]
+instance_types_system = ["c7a.2xlarge"]
+name                  = "kratix-demo"
+profile               = "sandbox"
+region                = "eu-central-1"
+project               = "kratix-demo"
+disk_size_system      = "40"

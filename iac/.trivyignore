@@ -1,0 +1,9 @@
+# Ignore specific findings that are intentional or accepted risks
+# AVD-AWS-0040: Public endpoint is configurable via cluster_endpoint_public_access variable
+AVD-AWS-0040
+
+# AVD-AWS-0041: CIDR is configurable via cluster_endpoint_public_access_cidrs variable
+AVD-AWS-0041
+
+# AVD-AWS-0104: Node egress is required for EKS nodes to pull images and access AWS APIs
+AVD-AWS-0104

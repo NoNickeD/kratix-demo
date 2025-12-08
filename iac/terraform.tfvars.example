@@ -1,0 +1,62 @@
+#-----------------------------------
+# General Configuration
+#-----------------------------------
+name        = "myapp"
+project     = "kratix-demo"
+environment = "prod"  # dev, tst, stg, prod
+profile     = "my-aws-profile"
+region      = "eu-south-1"
+
+#-----------------------------------
+# VPC Configuration
+#-----------------------------------
+cidr_block = "10.0.0.0/16"
+az_count   = 3
+
+#-----------------------------------
+# EKS Cluster Configuration
+#-----------------------------------
+cluster_name    = "my-eks-cluster"
+cluster_version = "1.32"
+
+# Security - IMPORTANT: Change this to your IP/CIDR for production!
+cluster_endpoint_public_access       = true
+cluster_endpoint_public_access_cidrs = ["0.0.0.0/0"]  # Change to ["YOUR.IP/32"]
+
+#-----------------------------------
+# Default Node Group (Application workloads)
+#-----------------------------------
+node_group_name = "node-group-app"
+instance_types  = ["t3.large"]
+node_count      = 3
+node_count_min  = 1
+node_count_max  = 6
+disk_size       = 80
+
+# AMI Type: AL2023_x86_64_STANDARD, AL2_x86_64, BOTTLEROCKET_x86_64, BOTTLEROCKET_ARM_64
+ami_type = "AL2023_x86_64_STANDARD"
+
+#-----------------------------------
+# System Node Group (Monitoring, logging, etc.)
+#-----------------------------------
+node_group_name_system = "node-group-system"
+instance_types_system  = ["t3.large"]
+node_count_system      = 2
+node_count_min_system  = 1
+node_count_max_system  = 4
+disk_size_system       = 80
+ami_type_system        = "AL2023_x86_64_STANDARD"
+
+#-----------------------------------
+# Bottlerocket Configuration (if using Bottlerocket AMI)
+#-----------------------------------
+# bottlerocket_admin_container_enabled   = false
+# bottlerocket_control_container_enabled = true
+
+#-----------------------------------
+# Additional Tags
+#-----------------------------------
+additional_tags = {
+  Team      = "platform"
+  CostCenter = "engineering"
+}

@@ -1,0 +1,24 @@
+---
+apiVersion: platform.kratix.io/v1alpha1
+kind: GitStateStore
+metadata:
+  name: default
+spec:
+  url: https://github.com/NoNickeD/kratix-demo.git
+  branch: main
+  path: gitops
+  secretRef:
+    name: git-credentials
+    namespace: kratix-platform-system
+---
+apiVersion: platform.kratix.io/v1alpha1
+kind: Destination
+metadata:
+  name: platform
+  labels:
+    environment: platform
+spec:
+  stateStoreRef:
+    name: default
+    kind: GitStateStore
+  path: platform
