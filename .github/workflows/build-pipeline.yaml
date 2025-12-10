@@ -120,4 +120,7 @@ jobs:
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           git add promises/promise.yaml
           git commit -m "chore: update datadog pipeline image to ${SHORT_SHA}"
+
+          # Pull latest changes and rebase before pushing
+          git pull --rebase origin main
           git push
