@@ -1,0 +1,229 @@
+version: "3"
+
+vars:
+  CLUSTER_NAME: kratix-demo
+  AWS_REGION: eu-central-1
+
+tasks:
+  # Infrastructure
+  infra:init:
+    desc: Initialize OpenTofu for infrastructure
+    dir: iac
+    cmds:
+      - tofu init
+    silent: true
+
+  infra:plan:
+    desc: Plan infrastructure changes
+    dir: iac
+    cmds:
+      - tofu plan
+    silent: true
+
+  infra:apply:
+    desc: Deploy EKS cluster and IAM roles
+    dir: iac
+    cmds:
+      - tofu apply -auto-approve
+    silent: true
+
+  infra:destroy:
+    desc: Destroy all infrastructure
+    dir: iac
+    cmds:
+      - tofu destroy -auto-approve
+    silent: true
+
+  # Kubernetes configuration
+  kubeconfig:
+    desc: Configure kubectl for the EKS cluster
+    cmds:
+      - aws eks update-kubeconfig --name {{.CLUSTER_NAME}} --region {{.AWS_REGION}} --profile <profile>
+    silent: true
+
+  # ArgoCD
+  argocd:init:
+    desc: Initialize OpenTofu for ArgoCD
+    dir: kubernetes/argocd
+    cmds:
+      - tofu init
+    silent: true
+
+  argocd:apply:
+    desc: Deploy ArgoCD via OpenTofu
+    dir: kubernetes/argocd
+    cmds:
+      - tofu apply -auto-approve
+
+  argocd:destroy:
+    desc: Destroy ArgoCD
+    dir: kubernetes/argocd
+    cmds:
+      - tofu destroy -auto-approve
+    silent: true
+
+  argocd:apps:
+    desc: Apply all ArgoCD Applications
+    cmds:
+      - kubectl apply -f kubernetes/argocd/apps/
+    silent: true
+
+  argocd:password:
+    desc: Get ArgoCD admin password
+    cmds:
+      - kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d && echo
+    silent: true
+
+  argocd:port-forward:
+    desc: Port forward ArgoCD UI to localhost:8080
+    cmds:
+      - kubectl port-forward svc/argocd-server -n argocd 8080:443
+    silent: true
+
+  # Platform components
+  kratix:apply:
+    desc: Apply Kratix GitStateStore and Destination
+    cmds:
+      - kubectl apply -f kubernetes/kratix/
+    silent: true
+
+  external-secrets:apply:
+    desc: Apply ClusterSecretStore and ExternalSecrets
+    cmds:
+      - kubectl apply -f kubernetes/external-secrets/
+    silent: true
+
+  # Promise
+  promise:apply:
+    desc: Install the DatadogStack Promise
+    cmds:
+      - kubectl apply -f promises/promise.yaml
+    silent: true
+
+  promise:delete:
+    desc: Remove the DatadogStack Promise
+    cmds:
+      - kubectl delete -f promises/promise.yaml
+    silent: true
+
+  # Datadog stacks
+  datadog:minimal:
+    desc: Deploy Datadog with minimal tier
+    cmds:
+      - kubectl apply -f promises/examples/minimal-tier.yaml
+    silent: true
+
+  datadog:standard:
+    desc: Deploy Datadog with standard tier
+    cmds:
+      - kubectl apply -f promises/examples/standard-tier.yaml
+    silent: true
+
+  datadog:full:
+    desc: Deploy Datadog with full tier
+    cmds:
+      - kubectl apply -f promises/examples/full-tier.yaml
+    silent: true
+
+  datadog:delete:
+    desc: Delete all DatadogStack resources
+    cmds:
+      - kubectl delete datadogstacks --all
+    silent: true
+
+  datadog:status:
+    desc: Check DatadogStack status
+    cmds:
+      - kubectl get datadogstacks
+      - kubectl get pods -n datadog-production 2>/dev/null || echo "No datadog-production namespace yet"
+    silent: true
+
+  # Pipeline
+  pipeline:build:
+    desc: Build pipeline Docker image locally
+    dir: promises/pipelines/datadog-configure
+    cmds:
+      - docker build -t ghcr.io/nonicked/kratix-datadog-pipeline:local .
+    silent: true
+
+  pipeline:trigger:
+    desc: Trigger GitHub Actions workflow to build pipeline
+    cmds:
+      - gh workflow run "Build Kratix Pipeline"
+      - gh run watch
+    silent: true
+
+  # Secrets
+  secrets:create-dev:
+    desc: Create Datadog API keys secret for dev environment
+    cmds:
+      - |
+        echo "Enter Datadog API Key:"
+        read -s API_KEY
+        echo "Enter Datadog App Key:"
+        read -s APP_KEY
+        aws secretsmanager create-secret \
+          --name "datadog/dev/api-keys" \
+          --secret-string "{\"api-key\":\"$API_KEY\",\"app-key\":\"$APP_KEY\"}"
+    silent: true
+
+  secrets:create-prod:
+    desc: Create Datadog API keys secret for prod environment
+    cmds:
+      - |
+        echo "Enter Datadog API Key:"
+        read -s API_KEY
+        echo "Enter Datadog App Key:"
+        read -s APP_KEY
+        aws secretsmanager create-secret \
+          --name "datadog/prod/api-keys" \
+          --secret-string "{\"api-key\":\"$API_KEY\",\"app-key\":\"$APP_KEY\"}"
+    silent: true
+
+  # Composite tasks
+  setup:
+    desc: Full setup - infrastructure, ArgoCD, and platform components
+    cmds:
+      - task: infra:init
+      - task: infra:apply
+      - task: kubeconfig
+      - task: argocd:init
+      - task: argocd:apply
+      - task: argocd:apps
+      - echo "Waiting for ArgoCD applications to sync..."
+      - sleep 60
+      - task: kratix:apply
+      - task: external-secrets:apply
+      - task: promise:apply
+
+  teardown:
+    desc: Full teardown - remove everything
+    cmds:
+      - task: datadog:delete
+      - task: promise:delete
+      - task: argocd:destroy
+      - task: infra:destroy
+
+  # Status
+  status:
+    desc: Show status of all components
+    cmds:
+      - echo "=== ArgoCD Applications ==="
+      - kubectl get applications -n argocd
+      - echo ""
+      - echo "=== DatadogStacks ==="
+      - kubectl get datadogstacks 2>/dev/null || echo "No DatadogStacks"
+      - echo ""
+      - echo "=== Datadog Pods ==="
+      - kubectl get pods -n datadog-production 2>/dev/null || echo "No datadog-production namespace"
+      - echo ""
+      - echo "=== HelmReleases ==="
+      - kubectl get helmrelease -A 2>/dev/null || echo "No HelmReleases"
+    silent: true
+
+  # Help
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+    silent: true
