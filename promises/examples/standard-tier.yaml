@@ -1,0 +1,9 @@
+apiVersion: platform.srekubecraft.io/v1alpha1
+kind: DatadogStack
+metadata:
+  name: staging
+  namespace: default
+spec:
+  tier: standard
+  environment: staging
+  clusterName: kratix-demo

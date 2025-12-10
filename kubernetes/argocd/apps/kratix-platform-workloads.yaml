@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kratix-platform-workloads
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/NoNickeD/kratix-demo.git
+    targetRevision: main
+    path: gitops/platform
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

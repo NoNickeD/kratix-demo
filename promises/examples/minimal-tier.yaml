@@ -1,0 +1,9 @@
+apiVersion: platform.srekubecraft.io/v1alpha1
+kind: DatadogStack
+metadata:
+  name: dev-observability
+  namespace: default
+spec:
+  tier: minimal
+  environment: dev
+  clusterName: kratix-demo
