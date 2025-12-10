@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: datadog-production
+  labels:
+    kratix.io/promise: datadog-stack
+    kratix.io/resource-name: production
+    environment: prod
+    tier: full
