@@ -1,0 +1,120 @@
+name: Build Kratix Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'promises/pipelines/**'
+  pull_request:
+    paths:
+      - 'promises/pipelines/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/kratix-datadog-pipeline
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+      - name: golangci-lint
+        working-directory: promises/pipelines/datadog-configure
+        run: golangci-lint run ./...
+
+  build:
+    runs-on: ubuntu-latest
+    needs: lint
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build
+        working-directory: promises/pipelines/datadog-configure
+        run: go build -v ./...
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern=v{{version}}
+            type=semver,pattern=v{{major}}.{{minor}}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: promises/pipelines/datadog-configure
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Update Promise with new image
+        if: github.event_name != 'pull_request'
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${SHORT_SHA}"
+
+          # Update the Promise pipeline image
+          yq -i '.spec.workflows.resource.configure[0].spec.containers[0].image = "'"${IMAGE}"'"' promises/promise.yaml
+
+          # Update container name
+          yq -i '.spec.workflows.resource.configure[0].spec.containers[0].name = "datadog-configure"' promises/promise.yaml
+
+          # Remove the default Helm env vars (our Go pipeline doesn't use them)
+          yq -i 'del(.spec.workflows.resource.configure[0].spec.containers[0].env)' promises/promise.yaml
+
+      - name: Commit and push Promise update
+        if: github.event_name != 'pull_request'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet promises/promise.yaml; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          git add promises/promise.yaml
+          git commit -m "chore: update datadog pipeline image to ${SHORT_SHA}"
+          git push

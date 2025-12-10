@@ -1,0 +1,44 @@
+# Standard tier - Metrics + APM + Logs
+# Recommended for staging environments
+datadog:
+  site: datadoghq.eu
+  apm:
+    portEnabled: true
+    enabled: true
+  logs:
+    enabled: true
+    containerCollectAll: false
+  processAgent:
+    enabled: false
+    processCollection: false
+  networkMonitoring:
+    enabled: false
+  securityAgent:
+    runtime:
+      enabled: false
+  serviceMonitoring:
+    enabled: true
+
+clusterAgent:
+  enabled: true
+  metricsProvider:
+    enabled: true
+
+agents:
+  containers:
+    agent:
+      resources:
+        requests:
+          cpu: 200m
+          memory: 512Mi
+        limits:
+          cpu: 500m
+          memory: 1Gi
+    traceAgent:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 300m
+          memory: 512Mi

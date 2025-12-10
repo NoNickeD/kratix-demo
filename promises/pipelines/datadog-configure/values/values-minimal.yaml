@@ -1,0 +1,36 @@
+# Minimal tier - Basic metrics only
+# Cost-effective for non-prod environments
+datadog:
+  site: datadoghq.eu
+  apm:
+    portEnabled: false
+    enabled: false
+  logs:
+    enabled: false
+    containerCollectAll: false
+  processAgent:
+    enabled: false
+    processCollection: false
+  networkMonitoring:
+    enabled: false
+  securityAgent:
+    runtime:
+      enabled: false
+  serviceMonitoring:
+    enabled: false
+
+clusterAgent:
+  enabled: true
+  metricsProvider:
+    enabled: false
+
+agents:
+  containers:
+    agent:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 200m
+          memory: 512Mi

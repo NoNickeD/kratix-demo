@@ -1,0 +1,66 @@
+# Full tier - All features enabled
+# Production-grade observability
+datadog:
+  site: datadoghq.eu
+  apm:
+    portEnabled: true
+    enabled: true
+  logs:
+    enabled: true
+    containerCollectAll: true
+  processAgent:
+    enabled: true
+    processCollection: true
+  networkMonitoring:
+    enabled: true
+  securityAgent:
+    runtime:
+      enabled: true
+  serviceMonitoring:
+    enabled: true
+  prometheusScrape:
+    enabled: true
+    serviceEndpoints: true
+
+clusterAgent:
+  enabled: true
+  metricsProvider:
+    enabled: true
+  admissionController:
+    enabled: true
+    mutateUnlabelled: true
+
+agents:
+  containers:
+    agent:
+      resources:
+        requests:
+          cpu: 300m
+          memory: 512Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+    traceAgent:
+      resources:
+        requests:
+          cpu: 200m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    processAgent:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 300m
+          memory: 512Mi
+    systemProbe:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 300m
+          memory: 512Mi
