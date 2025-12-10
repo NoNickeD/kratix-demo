@@ -2435,7 +2435,7 @@ spec:
             name: instance-configure
           spec:
             containers:
-              - image: ghcr.io/NoNickeD/kratix-datadog-pipeline:d4c748f
+              - image: ghcr.io/nonicked/kratix-datadog-pipeline:fa53d86
                 name: datadog-configure
 status:
   workflows: 0
